@@ -356,3 +356,88 @@ void cariProduk(){
         }
     fclose(ProjectAkhir);
 }
+
+void beliProduk(){
+    int pilih = -1;
+    int jumlahProduk = 0;
+    string namaPilih;
+    int jumlahBeli;
+    Produk produk[100];
+
+    FILE *ProjectAkhir = fopen("data_produk.txt", "r");
+    if (!ProjectAkhir){
+        cout << "Belum ada data produk!" << endl;
+        return;
+    }
+    while(fscanf(ProjectAkhir, "%s %d %d", produk[jumlahProduk].nama, &produk[jumlahProduk].stok, &produk[jumlahProduk].harga) != EOF){
+        jumlahProduk++;
+    }
+    fclose(ProjectAkhir);
+
+    cout << "Masukkan nama produk yang ingin dibeli: "; cin >> namaPilih;
+
+    for(int i = 0; i < jumlahProduk; i++){
+        if(produk[i].nama == namaPilih){
+            pilih = i;
+            break;
+        }
+    }
+
+    if(pilih == -1){
+        cout << "Produk tidak ditemukan!" << endl;
+        return;
+    }
+
+    cout << "Masukkan jumlah beli: "; cin >> jumlahBeli;
+
+    if(jumlahBeli > produk[pilih].stok){
+        cout << "Stok tidak cukup! Stok tersedia: " << produk[pilih].stok << endl;  
+        return;
+    }
+
+    produk[pilih].stok -= jumlahBeli;
+    int total = jumlahBeli * produk[pilih].harga;
+    cout << "Total Harga: Rp " << total << endl;
+
+    FILE *ProjectAkhirTemp = fopen("temp.txt", "w");
+    for(int i = 0; i < jumlahProduk; i++){
+        fprintf(ProjectAkhirTemp, "%s %d %d\n", produk[i].nama, produk[i].stok, produk[i].harga);
+    }
+    fclose(ProjectAkhirTemp);
+    
+    remove("data_produk.txt");
+    rename("temp.txt", "data_produk.txt");
+
+    FILE *FileRiwayat = fopen("riwayat.txt", "a");
+    if(FileRiwayat){
+        fprintf(FileRiwayat, "%s %d %d\n", produk[pilih].nama, jumlahBeli, total);
+        fclose(FileRiwayat);
+    }
+
+    cout << "Pembelian berhasil! Stok telah diperbarui." << endl;
+}
+
+void lihatRiwayat(){
+    FILE *FileRiwayat = fopen("riwayat.txt", "r");
+    if(!FileRiwayat){
+        cout << "Belum ada riwayat transaksi atau gagal membuka file!" << endl;
+        return;
+    }
+
+    char namaBarang[50];
+    int terjual, totalHarga;
+
+    cout << "=== RIWAYAT TRANSAKSI ===" << endl;
+    cout << left << setw(20) << "Nama Produk" 
+         << setw(15) << "Jumlah Beli" 
+         << setw(15) << "Total Harga" << endl;
+         
+    while(fscanf(FileRiwayat, "%s %d %d", namaBarang, &terjual, &totalHarga) != EOF){
+        cout << left << setw(20) << namaBarang 
+             << setw(15) << terjual 
+             << setw(15) << totalHarga << endl;
+    }
+    fclose(FileRiwayat);
+    cout << endl;
+}
+
