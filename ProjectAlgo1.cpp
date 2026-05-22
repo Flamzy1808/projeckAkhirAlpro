@@ -4,7 +4,6 @@ using namespace std;
 
 struct Produk{
     char nama[50];
-    int id;
     int harga;
     int stok;
 };
@@ -160,13 +159,15 @@ void cariProduk();
 void beliProduk();
 
 void admin(){
+	system("cls");
     int pilihAdmin;
     string username, password;
     cout << "Masukkan Username: "; cin >> username;
     cout << "Masukkan Password: "; cin >> password;
     if(username == "admin" && password == "admin123"){
         do{
-            cout << "Dashboard Admin Toko Kelontong" << endl <<
+			system("cls");
+            cout << "=== Dashboard Admin Toko Kelontong ===" << endl <<
             "1. Lihat Stok barang" << endl <<
             "2. Cari Produk" << endl <<
             "3. Tambah Barang" << endl <<
@@ -175,29 +176,36 @@ void admin(){
             "6. Lihat Riwayat Pembeli" << endl <<
             "7. Kembali ke menu utama" << endl <<
             "Pilih menu: "; cin >> pilihAdmin;
+            system("cls");
             switch(pilihAdmin) {
                 case 1 : {
                     lihatProduk();
+                    system("pause");
                     break;
                 }
                 case 2 : {
                     cariProduk();
+                    system("pause");
                     break;
                 }
                 case 3 : {
                     tambahProduk();
+                    system("pause");
                     break;
                 }
                 case 4 : {
                     updateStok();
+                    system("pause");
                     break;
                 }
                 case 5 : {
                     hapusProduk();
+                    system("pause");
                     break;
                 }
                 case 6 : {
                     lihatTransaksi();
+                    system("pause");
                     break;
                 }
                 case 7 : {
@@ -205,12 +213,14 @@ void admin(){
                 }
                 default : {
                     cout << "Nomor menu tidak valid! silahkan input ulang.." << endl;
+                    system("pause");
                     break;
                 }
             }
         }while(pilihAdmin != 7);
     }else{
         cout << endl << "Username atau password salah!" << endl;
+        system("pause");
         return;
     }
 }
@@ -218,36 +228,50 @@ void admin(){
 
 void user(){
     int pilihUser;
-    cout << "Dashboard User Toko Kelontong" << endl;
-    cout << "1. Lihat Semua Produk" << endl;
-    cout << "2. Cari Produk" << endl;
-    cout << "3. Beli Produk" << endl;
-    cout << "4. Keluar" << endl;
-    cout << "Pilih menu: "; cin >> pilihUser;
-    switch(pilihUser) {
-        case 1 : {
-            lihatProduk();
-            break;
-        }
-        case 2 : {
-            cariProduk();
-            break;
-        }
-        case 3 : {
-            beliProduk();
-            break;
-        }
-        case 4 : {
-            cout << "terimakasih sudah menggunakan sistem toko kelontong" << endl;
-        }
-    }
-    
+    do{
+		system("cls");
+		cout << "=== Dashboard User Toko Kelontong ===" << endl;
+		cout << "1. Lihat Semua Produk" << endl;
+		cout << "2. Cari Produk" << endl;
+		cout << "3. Beli Produk" << endl;
+		cout << "4. Keluar" << endl;
+		cout << "Pilih menu: "; cin >> pilihUser;
+		system("cls");
+		switch(pilihUser) {
+			case 1 : {
+				lihatProduk();
+				system("pause");
+				break;
+			}
+			case 2 : {
+				cariProduk();
+				system("pause");
+				break;
+			}
+			case 3 : {
+				beliProduk();
+				system("pause");
+				break;
+			}
+			case 4 : {
+				return;
+			}
+			default : {
+				cout << "Pilihan menu tidak valid!" << endl;
+				system("pause");
+				break;
+			}
+		}
+	}while(pilihUser != 4);
 }
 
 int main(){
     int pilihMenu;
     do{
-        cout << "Selamat Datang! Silahkan pilih menu.." << endl;
+		system("cls");
+        cout << right << setfill('=') << setw(30) << "=" << endl;
+        cout << setfill(' ') << setw(26) << "SISTEM TOKO KELONTONG" << endl;
+        cout << setfill('=') << setw(30) << "=" << endl;
         cout << "1. Admin" << endl;
         cout << "2. User" << endl;
         cout << "3. Keluar" << endl;
@@ -258,9 +282,11 @@ int main(){
             user();
         }else if(pilihMenu == 3){
             cout << "Selamat Tinggal..." << endl;
+            system("pause");
             return 0;
         }else{
             cout << "Pilihan tidak valid!" << endl;
+            system("pause");
         }
     }while(pilihMenu != 3);
 }
@@ -295,6 +321,7 @@ void lihatProduk(){
     cout << "1. Ascending" << endl;
     cout << "2. Descending" << endl;
     cout << "Pilih : "; cin >> pilihUrut;
+    system("cls");
 
     if(pilihUrut == 1){
         ascending(pilih);
@@ -360,13 +387,11 @@ void ascending(int opsi){
         }
     }
     cout << endl;
-    cout << left << setw(15) << "Nama"
-         << setw(10) << "Stok"
-         << setw(10) << "Harga" << endl;
+    cout << left << setfill('=') << setw(30) << "=" << endl;
+    cout << setfill(' ') << setw(15) << "Nama" << setw(10) << "Stok" << setw(10) << "Harga" << endl;
+    cout << setfill('-') << setw(30) << "-" << endl;
     for(int i = 0; i < jumlah; i++){
-        cout << left << setw(15) << produk[i].nama
-             << setw(10) << produk[i].stok
-             << setw(10) << produk[i].harga << endl;
+        cout << left << setfill(' ') << setw(15) << produk[i].nama << setw(10) << produk[i].stok << setw(10) << produk[i].harga << endl;
     }
     fclose(ProjectAkhir);
 }
@@ -426,13 +451,11 @@ void descending(int opsi){
         }
     }
     cout << endl;
-    cout << left << setw(15) << "Nama"
-         << setw(10) << "Stok"
-         << setw(10) << "Harga" << endl;
+    cout << left << setfill('=') << setw(30) << "=" << endl;
+    cout << setfill(' ') << setw(15) << "Nama" << setw(10) << "Stok" << setw(10) << "Harga" << endl;
+    cout << setfill('-') << setw(30) << "-" << endl;
     for(int i = 0; i < jumlah; i++){
-        cout << left << setw(15) << produk[i].nama
-             << setw(10) << produk[i].stok
-             << setw(10) << produk[i].harga << endl;
+        cout << left << setfill(' ') << setw(15) << produk[i].nama << setw(10) << produk[i].stok << setw(10) << produk[i].harga << endl;
     }
 }
 
@@ -520,6 +543,7 @@ void cariProduk(){
     for(int i= 0; i < jumlah; i++){
         if(cariProduk == produk[i].nama){
             cout << endl <<
+            "Produk ditemukan:" << endl <<
             "Nama  : " << produk[i].nama << endl <<
             "Harga : " << produk[i].harga << endl <<
             "Stok  : " << produk[i].stok << endl;
