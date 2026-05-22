@@ -3,34 +3,161 @@
 using namespace std;
 
 struct Produk{
-    string nama;
+    char nama[50];
     int id;
     int harga;
     int stok;
-    Produk* next;
 };
 
-struct Riwayat {
-    string nama;
-    int terjual;
-    int totalHarga;
-    Riwayat* next;
+struct Node {
+    Produk data;
+    Node* next;
 };
 
-Produk* head = NULL;
-Riwayat* headRiwayat = NULL;
+struct Transaksi {
+    string namaPembeli;
+    string namaProduk;
+    int jumlah;
+    int total;
+};
+
+struct NodeTransaksi {
+    Transaksi data;
+    NodeTransaksi* next;
+};
+
+Node* bacaDariFile() {
+    Node* head = nullptr;
+    Node* tail = nullptr;
+
+    FILE* f = fopen("data_produk.txt", "r");
+    if (!f) {
+        cout << "Gagal membuka file data_produk.txt!" << endl;
+        return nullptr;
+    }
+
+    Produk tmp;
+    while (fscanf(f, "%s %d %d", tmp.nama, &tmp.stok, &tmp.harga) != EOF) {
+        Node* nodeBaru = new Node();
+        nodeBaru->data = tmp;
+        nodeBaru->next = nullptr;
+        if (!head) {
+            head = tail = nodeBaru;
+        } else {
+            tail->next = nodeBaru;
+            tail = nodeBaru;
+        }
+    }
+    fclose(f);
+    return head;
+}
+
+void tulisKeFile(Node* head) {
+    FILE* f = fopen("data_produk.txt", "w");
+    if (!f) {
+        cout << "Gagal menulis ke file!" << endl;
+        return;
+    }
+    Node* current = head;
+    while (current != nullptr) {
+        fprintf(f, "%s %d %d\n", current->data.nama, current->data.stok, current->data.harga);
+        current = current->next;
+    }
+    fclose(f);
+}
+
+void bebaskanMemoriProduk(Node* head) {
+    while (head != nullptr) {
+        Node* hapus = head;
+        head = head->next;
+        delete hapus;
+    }
+}
+
+NodeTransaksi* headTransaksi = nullptr;
+
+void tambahTransaksi(string namaPembeli, string namaProduk, int jumlah, int total) {
+    NodeTransaksi* baru = new NodeTransaksi();
+    baru->data = {namaPembeli, namaProduk, jumlah, total};
+    baru->next = nullptr;
+
+    if (!headTransaksi) {
+        headTransaksi = baru;
+    } else {
+        NodeTransaksi* temp = headTransaksi;
+        while (temp->next != nullptr) temp = temp->next;
+        temp->next = baru;
+    }
+
+    FILE* f = fopen("data_transaksi.txt", "a");
+    if (f) {
+        fprintf(f, "%s %s %d %d\n", namaPembeli.c_str(), namaProduk.c_str(), jumlah, total);
+        fclose(f);
+    }
+}
+
+void muatTransaksiDariFile() {
+    while (headTransaksi != nullptr) {
+        NodeTransaksi* hapus = headTransaksi;
+        headTransaksi = headTransaksi->next;
+        delete hapus;
+    }
+
+    FILE* f = fopen("data_transaksi.txt", "r");
+    if (!f) return; 
+
+    char namaPembeli[50], namaProduk[50];
+    int jumlah, total;
+    while (fscanf(f, "%s %s %d %d", namaPembeli, namaProduk, &jumlah, &total) != EOF) {
+        NodeTransaksi* baru = new NodeTransaksi();
+        baru->data = {string(namaPembeli), string(namaProduk), jumlah, total};
+        baru->next = nullptr;
+
+        if (!headTransaksi) {
+            headTransaksi = baru;
+        } else {
+            NodeTransaksi* temp = headTransaksi;
+            while (temp->next != nullptr) temp = temp->next;
+            temp->next = baru;
+        }
+    }
+    fclose(f);
+}
+
+void lihatTransaksi() {
+    muatTransaksiDariFile();
+
+    if (!headTransaksi) {
+        cout << "Belum ada transaksi." << endl;
+        return;
+    }
+
+    cout << "\n=== DAFTAR TRANSAKSI PEMBELI ===" << endl;
+    cout << left << setw(15) << "Pembeli"
+         << setw(15) << "Produk"
+         << setw(10) << "Jumlah"
+         << setw(12) << "Total" << endl;
+    cout << string(52, '-') << endl;
+
+    NodeTransaksi* temp = headTransaksi;
+    while (temp != nullptr) {
+        cout << left << setw(15) << temp->data.namaPembeli
+             << setw(15) << temp->data.namaProduk
+             << setw(10) << temp->data.jumlah
+             << "Rp. " << temp->data.total << endl;
+        temp = temp->next;
+    }
+    cout << endl;
+}
 
 void lihatProduk();
 void ascending(int opsi);
 void descending(int opsi);
-void swapData(Produk* a, Produk* b);
 void tambahProduk();
 void updateStok();
 void hapusProduk();
 void cariProduk();
 void beliProduk();
-void lihatRiwayat();
-void hapusSemuaProdukList(); 
 
 void admin(){
     int pilihAdmin;
@@ -45,52 +172,76 @@ void admin(){
             "3. Tambah Barang" << endl <<
             "4. Update Stok" << endl <<
             "5. Hapus Produk" << endl <<
-            "6. Kembali ke menu utama" << endl <<
+            "6. Lihat Riwayat Pembeli" << endl <<
+            "7. Kembali ke menu utama" << endl <<
             "Pilih menu: "; cin >> pilihAdmin;
             switch(pilihAdmin) {
-                case 1 : { lihatProduk(); break; }
-                case 2 : { cariProduk(); break; }
-                case 3 : { tambahProduk(); break; }
-                case 4 : { updateStok(); break; }
-                case 5 : { hapusProduk(); break; }
-                case 6 : { return; }
+                case 1 : {
+                    lihatProduk();
+                    break;
+                }
+                case 2 : {
+                    cariProduk();
+                    break;
+                }
+                case 3 : {
+                    tambahProduk();
+                    break;
+                }
+                case 4 : {
+                    updateStok();
+                    break;
+                }
+                case 5 : {
+                    hapusProduk();
+                    break;
+                }
+                case 6 : {
+                    lihatTransaksi();
+                    break;
+                }
+                case 7 : {
+                    return;
+                }
                 default : {
                     cout << "Nomor menu tidak valid! silahkan input ulang.." << endl;
                     break;
                 }
             }
-        }while(pilihAdmin != 6);
+        }while(pilihAdmin != 7);
     }else{
         cout << endl << "Username atau password salah!" << endl;
         return;
     }
 }
 
+
 void user(){
     int pilihUser;
-    do{
-        cout << "Dashboard User Toko Kelontong" << endl;
-        cout << "1. Lihat Semua Produk" << endl;
-        cout << "2. Cari Produk" << endl;
-        cout << "3. Beli Produk" << endl;
-        cout << "4. Lihat Riwayat Belanja" << endl;
-        cout << "5. Keluar" << endl; 
-        cout << "Pilih menu: "; cin >> pilihUser;
-        switch(pilihUser) {
-            case 1 : { lihatProduk(); break; }
-            case 2 : { cariProduk(); break; }
-            case 3 : { beliProduk(); break; }
-            case 4 : { lihatRiwayat(); break; }
-            case 5 : {
-                cout << "terimakasih sudah menggunakan sistem toko kelontong" << endl;
-                break;
-            }
-            default : {
-                cout << "Pilihan tidak valid" << endl;
-                break;
-            }
+    cout << "Dashboard User Toko Kelontong" << endl;
+    cout << "1. Lihat Semua Produk" << endl;
+    cout << "2. Cari Produk" << endl;
+    cout << "3. Beli Produk" << endl;
+    cout << "4. Keluar" << endl;
+    cout << "Pilih menu: "; cin >> pilihUser;
+    switch(pilihUser) {
+        case 1 : {
+            lihatProduk();
+            break;
         }
-    }while(pilihUser != 5);
+        case 2 : {
+            cariProduk();
+            break;
+        }
+        case 3 : {
+            beliProduk();
+            break;
+        }
+        case 4 : {
+            cout << "terimakasih sudah menggunakan sistem toko kelontong" << endl;
+        }
+    }
+    
 }
 
 int main(){
@@ -112,30 +263,13 @@ int main(){
             cout << "Pilihan tidak valid!" << endl;
         }
     }while(pilihMenu != 3);
-} 
-
-void hapusSemuaProdukList() {
-    while(head != NULL) {
-        Produk* temp = head;
-        head = head->next;
-        delete temp;
-    }
 }
-
-void swapData(Produk* a, Produk* b) {
-    string tempNama = a->nama;
-    int tempHarga = a->harga;
-    int tempStok = a->stok;
-    
-    a->nama = b->nama; a->harga = b->harga; a->stok = b->stok;
-    b->nama = tempNama; b->harga = tempHarga; b->stok = tempStok;
-}
-
 
 void tambahProduk(){
     FILE *ProjectAkhir = fopen("data_produk.txt", "a");
     if (!ProjectAkhir){
         cout << "Gagal membuka file!" << endl;
+        system("pause");
         return;
     }
     Produk produk;
@@ -143,8 +277,7 @@ void tambahProduk(){
     cout << "Nama produk      : "; cin >> produk.nama;
     cout << "Stok             : "; cin >> produk.stok;
     cout << "Harga per pieces : "; cin >> produk.harga;
-    
-    fprintf(ProjectAkhir, "%s %d %d\n", produk.nama.c_str(), produk.stok, produk.harga);
+    fprintf(ProjectAkhir, "%s %d %d\n", produk.nama, produk.stok, produk.harga);
     fclose(ProjectAkhir);
     cout << endl << "Produk berhasil ditambahkan!" << endl << endl;
 }
@@ -173,163 +306,159 @@ void lihatProduk(){
 }
 
 void ascending(int opsi){
-    hapusSemuaProdukList(); 
-    char tempNama[100];
-    int tempStok, tempHarga;
+    Produk produk[100], temp;
+    int jumlah = 0;
 
     FILE *ProjectAkhir = fopen("data_produk.txt", "r");
     if (!ProjectAkhir){
         cout << "Gagal membuka file!" << endl;
+        system("pause");
         return;
     }
 
-    while(fscanf(ProjectAkhir, "%s %d %d", tempNama, &tempStok, &tempHarga) != EOF){
-        Produk* baru = new Produk{tempNama, 0, tempHarga, tempStok, NULL};
-        if(head == NULL) head = baru;
-        else {
-            Produk* temp = head;
-            while(temp->next != NULL) temp = temp->next;
-            temp->next = baru;
+    while(fscanf(ProjectAkhir, "%s %d %d", produk[jumlah].nama, &produk[jumlah].stok, &produk[jumlah].harga) != EOF){
+        jumlah++;
+    }
+    if(opsi == 1){
+                for(int k=0;k<jumlah-1;k++){
+                    for(int l=0;l<jumlah-1-k;l++){
+                        int m=0;
+                        while(produk[l].nama[m] != '\0' && produk[l+1].nama[m] != '\0'){
+                            if(produk[l].nama[m] > produk[l+1].nama[m]){
+                                temp = produk[l];
+                                produk[l] = produk[l+1];
+                                produk[l+1] = temp;
+                                break;
+                            }
+                            else if(produk[l].nama[m] < produk[l+1].nama[m]){
+                                break;
+                            }
+                            m++;
+                        }
+                    }
+                }
+            }
+    for(int i = 0; i < jumlah-1; i++){
+        for(int j = i+1; j < jumlah; j++){
+            bool tukar = false;
+            if(opsi == 2){
+                if(produk[i].harga > produk[j].harga){
+                    tukar = true;
+                }
+            }
+            else if(opsi == 3){
+                if(produk[i].stok > produk[j].stok){
+                    tukar = true;
+                }
+            }
+
+            if(tukar){
+                temp = produk[i];
+                produk[i] = produk[j];
+                produk[j] = temp;
+            }
         }
     }
-    fclose(ProjectAkhir);
-
-    if(head != NULL) {
-        bool ditukar;
-        Produk* ptr1;
-        Produk* lptr = NULL;
-        do {
-            ditukar = false;
-            ptr1 = head;
-            while(ptr1->next != lptr) {
-                bool tukar = false;
-                if(opsi == 1 && ptr1->nama > ptr1->next->nama) tukar = true;
-                else if(opsi == 2 && ptr1->harga > ptr1->next->harga) tukar = true;
-                else if(opsi == 3 && ptr1->stok > ptr1->next->stok) tukar = true;
-
-                if(tukar) {
-                    swapData(ptr1, ptr1->next);
-                    ditukar = true;
-                }
-                ptr1 = ptr1->next;
-            }
-            lptr = ptr1;
-        } while(ditukar);
-    }
-
     cout << endl;
     cout << left << setw(15) << "Nama"
          << setw(10) << "Stok"
          << setw(10) << "Harga" << endl;
-         
-    Produk* tempPrint = head;
-    while(tempPrint != NULL){
-        cout << left << setw(15) << tempPrint->nama
-             << setw(10) << tempPrint->stok
-             << setw(10) << tempPrint->harga << endl;
-        tempPrint = tempPrint->next;
+    for(int i = 0; i < jumlah; i++){
+        cout << left << setw(15) << produk[i].nama
+             << setw(10) << produk[i].stok
+             << setw(10) << produk[i].harga << endl;
     }
+    fclose(ProjectAkhir);
 }
 
 void descending(int opsi){
-    hapusSemuaProdukList();
-    char tempNama[100];
-    int tempStok, tempHarga;
-
+    Produk produk[100], temp;
+    int jumlah = 0;
     FILE *ProjectAkhir = fopen("data_produk.txt", "r");
     if (!ProjectAkhir){
         cout << "Gagal membuka file!" << endl;
+        system("pause");
         return;
     }
 
-    while(fscanf(ProjectAkhir, "%s %d %d", tempNama, &tempStok, &tempHarga) != EOF){
-        Produk* baru = new Produk{tempNama, 0, tempHarga, tempStok, NULL};
-        if(head == NULL) head = baru;
-        else {
-            Produk* temp = head;
-            while(temp->next != NULL) temp = temp->next;
-            temp->next = baru;
+    while(fscanf(ProjectAkhir, "%s %d %d", produk[jumlah].nama, &produk[jumlah].stok, &produk[jumlah].harga) != EOF){
+        jumlah++;
+    }
+
+    fclose(ProjectAkhir);
+    if(opsi == 1){
+                for(int k=0;k<jumlah-1;k++){
+                    for(int l=0;l<jumlah-1-k;l++){
+                        int m=0;
+                        while(produk[l].nama[m] != '\0' && produk[l+1].nama[m] != '\0'){
+                            if(produk[l].nama[m] < produk[l+1].nama[m]){
+                                temp = produk[l];
+                                produk[l] = produk[l+1];
+                                produk[l+1] = temp;
+                                break;
+                            }
+                            else if(produk[l].nama[m] > produk[l+1].nama[m]){
+                                break;
+                            }
+                            m++;
+                        }
+                    }
+                }
+            }
+    for(int i = 0; i < jumlah-1; i++){
+        for(int j = i+1; j < jumlah; j++){
+            bool tukar = false;
+            if(opsi == 2){
+                if(produk[i].harga < produk[j].harga){
+                    tukar = true;
+                }
+            }
+            else if(opsi == 3){
+                if(produk[i].stok < produk[j].stok){
+                    tukar = true;
+                }
+            }
+            if(tukar){
+                temp = produk[i];
+                produk[i] = produk[j];
+                produk[j] = temp;
+            }
         }
     }
-    fclose(ProjectAkhir);
-    
-    if(head != NULL) {
-        bool ditukar;
-        Produk* ptr1;
-        Produk* lptr = NULL;
-        do {
-            ditukar = false;
-            ptr1 = head;
-            while(ptr1->next != lptr) {
-                bool tukar = false;
-                if(opsi == 1 && ptr1->nama < ptr1->next->nama) tukar = true;
-                else if(opsi == 2 && ptr1->harga < ptr1->next->harga) tukar = true;
-                else if(opsi == 3 && ptr1->stok < ptr1->next->stok) tukar = true;
-
-                if(tukar) {
-                    swapData(ptr1, ptr1->next);
-                    ditukar = true;
-                }
-                ptr1 = ptr1->next;
-            }
-            lptr = ptr1;
-        } while(ditukar);
-    }
-
     cout << endl;
     cout << left << setw(15) << "Nama"
          << setw(10) << "Stok"
          << setw(10) << "Harga" << endl;
-         
-    Produk* tempPrint = head;
-    while(tempPrint != NULL){
-        cout << left << setw(15) << tempPrint->nama
-             << setw(10) << tempPrint->stok
-             << setw(10) << tempPrint->harga << endl;
-        tempPrint = tempPrint->next;
+    for(int i = 0; i < jumlah; i++){
+        cout << left << setw(15) << produk[i].nama
+             << setw(10) << produk[i].stok
+             << setw(10) << produk[i].harga << endl;
     }
 }
 
 void updateStok(){
-    hapusSemuaProdukList();
     string namaCari;
     bool ditemukan = false;
-    char tempNama[100];
-    int tempStok, tempHarga;
-
+    Produk produk;
     FILE *ProjectAkhir = fopen("data_produk.txt", "r");
+    FILE *FileTemp = fopen("temp.txt", "w");
     if(!ProjectAkhir){
         cout << "Gagal membuka file!" << endl;
+        system("pause");
         return;
     }
 
     cout << "Masukkan nama produk yang ingin diupdate: "; cin >> namaCari;
-    
-    while(fscanf(ProjectAkhir, "%s %d %d", tempNama, &tempStok, &tempHarga) != EOF){
-        string strNama = tempNama;
-        if(namaCari == strNama){
+    while(fscanf(ProjectAkhir, "%s %d %d", produk.nama, &produk.stok, &produk.harga) != EOF){
+        if(namaCari == produk.nama){
             ditemukan = true;
-            cout << "Stok lama : " << tempStok << endl;
-            cout << "Masukkan stok baru: "; cin >> tempStok;
+            cout << "Stok lama : " << produk.stok << endl;
+            cout << "Masukkan stok baru: "; cin >> produk.stok;
         }
-        Produk* baru = new Produk{strNama, 0, tempHarga, tempStok, NULL};
-        if(head == NULL) head = baru;
-        else {
-            Produk* tempLL = head;
-            while(tempLL->next != NULL) tempLL = tempLL->next;
-            tempLL->next = baru;
-        }
+        fprintf(FileTemp, "%s %d %d\n", produk.nama, produk.stok, produk.harga);
     }
     fclose(ProjectAkhir);
-
-    FILE *FileTemp = fopen("temp.txt", "w");
-    Produk* tempTulis = head;
-    while(tempTulis != NULL){
-        fprintf(FileTemp, "%s %d %d\n", tempTulis->nama.c_str(), tempTulis->stok, tempTulis->harga);
-        tempTulis = tempTulis->next;
-    }
     fclose(FileTemp);
-
     if(ditemukan){
         remove("data_produk.txt");
         rename("temp.txt", "data_produk.txt");
@@ -341,44 +470,27 @@ void updateStok(){
 }
 
 void hapusProduk(){
-    hapusSemuaProdukList();
     string namaHapus;
     bool ditemukan = false;
-    char tempNama[100];
-    int tempStok, tempHarga;
+    Produk produk;
 
     FILE *ProjectAkhir = fopen("data_produk.txt", "r");
+    FILE *FileTemp = fopen("temp.txt", "w");
     if(!ProjectAkhir){
         cout << "Gagal membuka file!" << endl;
+        system("pause");
         return;
     }
-    
     cout << "Masukkan nama produk yang ingin dihapus: "; cin >> namaHapus;
-    
-    while(fscanf(ProjectAkhir, "%s %d %d", tempNama, &tempStok, &tempHarga) != EOF){
-        string strNama = tempNama;
-        if(strNama != namaHapus){
-            Produk* baru = new Produk{strNama, 0, tempHarga, tempStok, NULL};
-            if(head == NULL) head = baru;
-            else {
-                Produk* tempLL = head;
-                while(tempLL->next != NULL) tempLL = tempLL->next;
-                tempLL->next = baru;
-            }
+    while(fscanf(ProjectAkhir, "%s %d %d", produk.nama, &produk.stok, &produk.harga) != EOF){
+        if(produk.nama != namaHapus){
+            fprintf(FileTemp, "%s %d %d\n", produk.nama, produk.stok, produk.harga);
         }else{
             ditemukan = true;
         }
     }
     fclose(ProjectAkhir);
-    
-    FILE *FileTemp = fopen("temp.txt", "w");
-    Produk* tempTulis = head;
-    while(tempTulis != NULL){
-        fprintf(FileTemp, "%s %d %d\n", tempTulis->nama.c_str(), tempTulis->stok, tempTulis->harga);
-        tempTulis = tempTulis->next;
-    }
     fclose(FileTemp);
-
     if(ditemukan){
         remove("data_produk.txt");
         rename("temp.txt", "data_produk.txt");
@@ -390,161 +502,115 @@ void hapusProduk(){
 }
 
 void cariProduk(){
-    hapusSemuaProdukList();
     string cariProduk;
+    int jumlah = 0;
     bool cekCari = false;
-    char tempNama[100];
-    int tempStok, tempHarga;
 
     FILE *ProjectAkhir = fopen("data_produk.txt", "r");
     if (!ProjectAkhir){
         cout << "Gagal membuka file!" << endl;
+        system("pause");
         return;
     }
     cout << "Masukkan nama produk yang akan dicari: "; cin >> cariProduk;
-    
-    // tarik file ke LL
-    while(fscanf(ProjectAkhir, "%s %d %d", tempNama, &tempStok, &tempHarga) != EOF){
-        Produk* baru = new Produk{tempNama, 0, tempHarga, tempStok, NULL};
-        if(head == NULL) head = baru;
-        else {
-            Produk* tempLL = head;
-            while(tempLL->next != NULL) tempLL = tempLL->next;
-            tempLL->next = baru;
-        }
+    Produk produk[100];
+    while(fscanf(ProjectAkhir, "%s %d %d", produk[jumlah].nama, &produk[jumlah].stok, &produk[jumlah].harga) != EOF){
+        jumlah++;
     }
-    fclose(ProjectAkhir);
-
-    // cari dari LL
-    Produk* tempCari = head;
-    while(tempCari != NULL){
-        if(tempCari->nama == cariProduk){
+    for(int i= 0; i < jumlah; i++){
+        if(cariProduk == produk[i].nama){
             cout << endl <<
-            "Nama  : " << tempCari->nama << endl <<
-            "Harga : " << tempCari->harga << endl <<
-            "Stok  : " << tempCari->stok << endl;
+            "Nama  : " << produk[i].nama << endl <<
+            "Harga : " << produk[i].harga << endl <<
+            "Stok  : " << produk[i].stok << endl;
             cekCari = true;
         }
-        tempCari = tempCari->next;
     }
-    
     if(cekCari == false){
-        cout << endl << "Produk dengan nama tersebut tidak ditemukan" << endl;
-    }
+            cout << endl << "Produk dengan nama tersebut tidak ditemukan" << endl;
+        }
+    fclose(ProjectAkhir);
 }
 
-void beliProduk(){
-    hapusSemuaProdukList();
-    string namaProduk;
-    cout << "Masukkan nama produk: ";
-    cin >> namaProduk;
-
-    char tempNama[100];
-    int tempStok, tempHarga;
-    FILE* fileProduk = fopen("data_produk.txt", "r");
-    if (!fileProduk) {
-        cout << "Belum ada data produk!\n";
+void beliProduk() {
+    Node* head = bacaDariFile();
+    if (!head) {
+        cout << "Tidak ada produk tersedia!" << endl;
         return;
     }
-    
-    while(fscanf(fileProduk, "%s %d %d", tempNama, &tempStok, &tempHarga) != EOF){
-        Produk* baru = new Produk{tempNama, 0, tempHarga, tempStok, NULL};
-        if(head == NULL) head = baru;
-        else {
-            Produk* t = head;
-            while(t->next != NULL) t = t->next;
-            t->next = baru;
+
+    cout << "\n=== DAFTAR PRODUK TERSEDIA ===" << endl;
+    lihatProduk();
+
+    string namaPilih;
+    cout << "\nMasukkan nama produk yang ingin dibeli: "; cin >> namaPilih;
+
+    Node* target = nullptr;
+    Node* cur = head;
+    while (cur != nullptr) {
+        if (namaPilih == string(cur->data.nama)) {
+            target = cur;
+            break;
         }
-    }
-    fclose(fileProduk);
-
-    Produk* ptrBeli = head;
-    while(ptrBeli != NULL){
-        if(ptrBeli->nama == namaProduk) break;
-        ptrBeli = ptrBeli->next;
+        cur = cur->next;
     }
 
-    if (ptrBeli == NULL) {
-        cout << "Produk tidak ditemukan!\n";
+    if (!target) {
+        cout << "Produk tidak ditemukan!" << endl;
+        bebaskanMemoriProduk(head);
         return;
     }
+
+    cout << "\nProduk ditemukan!" << endl;
+    cout << "Nama  : " << target->data.nama << endl;
+    cout << "Harga : Rp. " << target->data.harga << endl;
+    cout << "Stok  : " << target->data.stok << endl;
 
     int jumlahBeli;
-    cout << "Masukkan jumlah beli: ";
-    cin >> jumlahBeli;
+    cout << "\nMasukkan jumlah beli: "; cin >> jumlahBeli;
 
-    if (jumlahBeli > ptrBeli->stok) {
-        cout << "Stok tidak cukup! Stok tersedia: " << ptrBeli->stok << endl;
+    if (jumlahBeli <= 0) {
+        cout << "Jumlah tidak valid!" << endl;
+        bebaskanMemoriProduk(head);
+        return;
+    }
+    if (jumlahBeli > target->data.stok) {
+        cout << "Stok tidak cukup! Stok tersedia: " << target->data.stok << endl;
+        bebaskanMemoriProduk(head);
         return;
     }
 
-    ptrBeli->stok -= jumlahBeli;
-    int total = jumlahBeli * ptrBeli->harga;
+    int total = jumlahBeli * target->data.harga;
+    cout << "Total Harga  : Rp. " << total << endl;
 
     string namaPembeli;
-    cout << "Masukkan nama pembeli: ";
-    cin >> namaPembeli;
+    cout << "Masukkan nama Anda: "; cin >> namaPembeli;
 
-    // invoice
-    cout << "=== INVOICE ===" << endl;
-    cout << "Nama Pembeli : " << namaPembeli << endl;
-    cout << "Produk       : " << ptrBeli->nama << endl;
-    cout << "Jumlah       : " << jumlahBeli << endl;
-    cout << "Total Harga  : Rp " << total << endl;
+    target->data.stok -= jumlahBeli;
 
-    // Update stok ke file (tulis ulang dari Linked List)
-    FILE* fileTemp = fopen("temp.txt", "w");
-    Produk* tWrite = head;
-    while(tWrite != NULL){
-        fprintf(fileTemp, "%s %d %d\n", tWrite->nama.c_str(), tWrite->stok, tWrite->harga);
-        tWrite = tWrite->next;
-    }
-    fclose(fileTemp);
-    remove("data_produk.txt");
-    rename("temp.txt", "data_produk.txt");
+    cout << "\n======================================" << endl;
+    cout << "           INVOICE PEMBELIAN          " << endl;
+    cout << "======================================" << endl;
+    cout << left << setw(15) << "Nama Pembeli" << ": " << namaPembeli << endl;
+    cout << left << setw(15) << "Produk"       << ": " << target->data.nama << endl;
+    cout << left << setw(15) << "Harga Satuan" << ": Rp. " << target->data.harga << endl;
+    cout << left << setw(15) << "Jumlah"       << ": " << jumlahBeli << endl;
+    cout << "--------------------------------------" << endl;
+    cout << left << setw(15) << "TOTAL"        << ": Rp. " << total << endl;
+    cout << "======================================" << endl;
+    cout << "     Terimakasih sudah berbelanja!    " << endl;
+    cout << "======================================" << endl;
 
-    // nyimpen riwayat produk 
-    FILE* fileRiwayat = fopen("riwayat.txt", "a");
-    fprintf(fileRiwayat, "%s %d %d\n", ptrBeli->nama.c_str(), jumlahBeli, total);
-    fclose(fileRiwayat);
+    tulisKeFile(head);
 
-    // nyimpen data pelanggan 
-    FILE* filePelanggan = fopen("data_pelanggan.txt", "a");
-    fprintf(filePelanggan, "%s %d\n", namaPembeli.c_str(), total);
-    fclose(filePelanggan);
-
-    // tambah ke linked list Riwayat 
-    Riwayat* baruRiw = new Riwayat{namaPembeli, jumlahBeli, total, NULL};
-    if (!headRiwayat) headRiwayat = baruRiw;
-    else {
-        Riwayat* tempRiw = headRiwayat;
-        while (tempRiw->next) tempRiw = tempRiw->next;
-        tempRiw->next = baruRiw;
+    FILE* fp = fopen("data_pelanggan.txt", "a");
+    if (fp) {
+        fprintf(fp, "%s %d\n", namaPembeli.c_str(), total);
+        fclose(fp);
     }
 
-    cout << "Pembelian berhasil!" << endl;
-}
+    tambahTransaksi(namaPembeli, string(target->data.nama), jumlahBeli, total);
 
-void lihatRiwayat(){
-    FILE *FileRiwayat = fopen("riwayat.txt", "r");
-    if(!FileRiwayat){
-        cout << "Belum ada riwayat transaksi atau gagal membuka file!" << endl;
-        return;
-    }
-
-    char namaBarang[50];
-    int terjual, totalHarga;
-
-    cout << "=== RIWAYAT TRANSAKSI ===" << endl;
-    cout << left << setw(20) << "Nama Produk" 
-         << setw(15) << "Jumlah Beli" 
-         << setw(15) << "Total Harga" << endl;
-         
-    while(fscanf(FileRiwayat, "%s %d %d", namaBarang, &terjual, &totalHarga) != EOF){
-        cout << left << setw(20) << namaBarang 
-             << setw(15) << terjual 
-             << setw(15) << totalHarga << endl;
-    }
-    fclose(FileRiwayat);
-    cout << endl;
+    cout << "\nPembelian berhasil!" << endl;
+    bebaskanMemoriProduk(head);
 }
